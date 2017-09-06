@@ -61,6 +61,7 @@ class RvizPublisher():
             msg.pose.pose.orientation.y = quaternion[1]
             msg.pose.pose.orientation.z = quaternion[2]
             msg.pose.pose.orientation.w = quaternion[3]
+            # needed to prevent robot from drifting off
             msg.pose.covariance = [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                    0.0, 0.0, 0.06853891945200942]
