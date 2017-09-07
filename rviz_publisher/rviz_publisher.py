@@ -11,18 +11,29 @@ Created on Sep 6, 2017
 
 import rospy
 import argparse
-from geneus.generate import msg_type
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PointStamped
-from bcolors import TerminalColors as tc
-from std_msgs.msg import Header
 import tf
+
+
+# colors in terminal prints
+class TerminalColors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 
 
 class RvizPublisher():
     def __init__(self):
+        self.tc = TerminalColors()
         # topics you can publish
         self.topics = {'/initialpose': PoseWithCovarianceStamped,
                        '/move_base_simple/goal': PoseStamped,
@@ -33,9 +44,6 @@ class RvizPublisher():
 
         # setup argument parser
         self.args = self.build_parser().parse_args()
-        # self.publisher_initialpose = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=2)
-        # self.publisher_goal = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=2)
-        # self.publisher_clicked_point = rospy.Publisher('/clicked_point', PointStamped, queue_size=2)
 
         rospy.init_node('rviz_publisher', anonymous=True)
         # python bug... sleep NEEDED!(ros tired...) Min: 0.5 sec
@@ -45,8 +53,8 @@ class RvizPublisher():
         parser = argparse.ArgumentParser(
             description='Publish \'/initialpose\' for RVIZ to auto-locate robot')
         # group = parser.add_mutually_exclusive_group()
-        parser.add_argument('-g', '--goal', help='goal for robot as:ls x y R P Y', nargs='+', type=float)
-        parser.add_argument('launch', help='launch-file to read \'/initialpose\' from', type=str)
+        parser.add_argument('-g', '--goal', help='goal for robot as: x y R P Y', nargs='+', type=float)
+        parser.add_argument('launch', help='launch-file to read \'initial_config\' from', type=str)
         return parser
 
     def euler2quaternion(self, roll, pitch, yaw):
@@ -125,16 +133,18 @@ class RvizPublisher():
                  str(self.args.goal[2]) + '; P: ' + \
                  str(self.args.goal[3]) + '; Y: ' + \
                  str(self.args.goal[4]) + ']'
-        print tc.OKBLUE + '=' * output.__len__()
+        print self.tc.OKBLUE + '=' * output.__len__()
         print output
-        print '=' * output.__len__() + tc.ENDC
+        print '=' * output.__len__() + self.tc.ENDC
         position = rp.getParams()
         rp.publish('/initialpose', position['x'], position['y'], position['R'], position['P'], position['Y'])
-        print tc.OKBLUE + '='*80 + tc.ENDC
+        print self.tc.OKBLUE + '='*80 + self.tc.ENDC
+
+
         rospy.sleep(5)
         rp.publish('/move_base_simple/goal', self.args.goal[0], self.args.goal[1], self.args.goal[2], self.args.goal[3],
                    self.args.goal[4])
-        print tc.OKBLUE + '='*80 + tc.ENDC
+        print self.tc.OKBLUE + '='*80 + self.tc.ENDC
 
 
 if __name__ == '__main__':
