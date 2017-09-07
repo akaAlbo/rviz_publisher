@@ -58,12 +58,26 @@ class RvizPublisher():
         return parser
 
     def euler2quaternion(self, roll, pitch, yaw):
-        # converts euler to quaternion
+        '''
+        converts euler to quaternion
+        :param roll: angle around x-axis
+        :param pitch: angle around  y-axis
+        :param yaw: angle around z-axis
+        :return: quaternion of euler-angles
+        '''
         quaternion = tf.transformations.quaternion_from_euler(roll, pitch, yaw)
         return quaternion
 
     def setupMessage(self, msg_type, frame_id, position_x, position_y, *args):
-        # frame_id default mostly 'map'
+        '''
+        build up message to publish on node
+        :param msg_type: type of the message to publish
+        :param frame_id: mostly 'map'
+        :param position_x: x-position on map
+        :param position_y: y-position on map
+        :param args: roll, pitch, yaw angle
+        :return: fully setup message
+        '''
         msg = msg_type()
         msg.header.seq = 1
         msg.header.stamp = rospy.Time.now()
@@ -101,12 +115,24 @@ class RvizPublisher():
         return msg
 
     def publish(self, topic, pose_x, pose_y, *args):
+        '''
+        publish position on given topic
+        :param topic: topic to publish the message on
+        :param pose_x: x-position on map
+        :param pose_y: y-position on map
+        :param args: roll, pitch, yaw angles
+        :return: --
+        '''
         # generate message to publish
         msg = self.setupMessage(self.topics[topic], 'map', pose_x, pose_y, *args)
         print msg
         self.publisher[topic].publish(msg)
 
     def getParams(self):
+        '''
+        get parameter from .launch-file for /initialpose
+        :return: position of robot in gazebo
+        '''
         filename = self.args.launch
         with open(filename, 'r') as f:
             content = f.readlines()
@@ -126,7 +152,10 @@ class RvizPublisher():
         return position
 
     def main(self):
-        # publish initialpose as [x, y, roll, pitch, yaw]
+        '''
+        publish initialpose and navigation goal
+        :return: --
+        '''
         output = 'RVIZ auto-position publisher with goal: [x: ' + \
                  str(self.args.goal[0]) + '; y: ' + \
                  str(self.args.goal[1]) + '; R: ' + \
