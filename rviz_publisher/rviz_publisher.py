@@ -5,7 +5,7 @@ Created on Sep 6, 2017
 
 @author: flg-ma
 @attention: Auto Position Publisher for RVIZ
-@contact: marcel.albus@ipa.fraunhofer.de (Marcel Albus)
+@contact: albus.marcel@gmail.com (Marcel Albus)
 @version: 1.1.0
 """
 
