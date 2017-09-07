@@ -141,7 +141,7 @@ class RvizPublisher():
         print self.tc.OKBLUE + '='*80 + self.tc.ENDC
 
 
-        rospy.sleep(5)
+        rospy.sleep(3)
         rp.publish('/move_base_simple/goal', self.args.goal[0], self.args.goal[1], self.args.goal[2], self.args.goal[3],
                    self.args.goal[4])
         print self.tc.OKBLUE + '='*80 + self.tc.ENDC
