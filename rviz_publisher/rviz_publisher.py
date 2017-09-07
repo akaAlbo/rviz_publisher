@@ -21,6 +21,7 @@ import tf
 
 class RvizPublisher():
     def __init__(self):
+        # topics you can publish
         self.topics = {'/initialpose': PoseWithCovarianceStamped,
                        '/move_base_simple/goal': PoseStamped,
                        '/clicked_point': PointStamped}
@@ -48,6 +49,7 @@ class RvizPublisher():
         msg.header.stamp = rospy.Time.now()
         msg.header.frame_id = frame_id
         args = list(args)
+        # get roll, pitch, yaw from additional parameters
         roll = args[0]
         pitch = args[1]
         yaw = args[2]
@@ -79,6 +81,7 @@ class RvizPublisher():
         return msg
 
     def publish(self, topic, pose_x, pose_y, *args):
+        # generate message to publish
         msg = self.setupMessage(self.topics[topic], 'map', pose_x, pose_y, *args)
         print msg
         # if topic is '/initialpose':
@@ -90,13 +93,39 @@ class RvizPublisher():
 
         self.publisher[topic].publish(msg)
 
+    def getParams(self):
+        filename = '/home/flg-ma/git/catkin_ws/src/msh/msh_bringup/launch/t_passage.launch'
+        with open(filename, 'r') as f:
+            content = f.readlines()
+
+        position = {}
+        for line in content:
+            if 'initial_config' in line and 'default' in line:
+                print line
+                print line[line.index('-x'):line.index('"/>')]
+                position['x'] = line[line.index('-x') + 3:line.index('-y')-1]
+                position['y'] = line[line.index('-y') + 3:line.index('-R')-1]
+                position['R'] = line[line.index('-R') + 3:line.index('-P')-1]
+                position['P'] = line[line.index('-P') + 3:line.index('-Y')-1]
+                position['Y'] = line[line.index('-Y') + 3:line.index('"/>')]
+                # convert str to float
+                for pos in position:
+                    position[pos] = float(position[pos])
+        return position
+
+    def main(self):
+        # publish initialpose as [x, y, roll, pitch, yaw]
+        position = rp.getParams()
+        rp.publish('/initialpose', position['x'], position['y'], position['R'], position['P'], position['Y'])
+        rospy.sleep(5)
+        rp.publish('/move_base_simple/goal', position['x'], position['y'], position['R'], position['P'], position['Y'])
+
 
 if __name__ == '__main__':
     try:
         rp = RvizPublisher()
-        # rp.publish('/initialpose', .7, 0, 0, 0, 0)
-        # rospy.sleep(2)
-        rp.publish('/move_base_simple/goal', 4, 0, 0, 0, 0)
-        # rp.publish(PointStamped, 0, 0, 0, 0, 0)
+        rp.main()
     except rospy.ROSInterruptException:
         pass
+
+# TODO: add argument parser for commandline --> main.py
