@@ -166,6 +166,7 @@ class RvizPublisher():
         print output
         print '=' * output.__len__() + self.tc.ENDC
         position = rp.getParams()
+
         rp.publish('/initialpose', position['x'], position['y'], position['R'], position['P'], position['Y'])
         print self.tc.OKBLUE + '='*80 + self.tc.ENDC
 
