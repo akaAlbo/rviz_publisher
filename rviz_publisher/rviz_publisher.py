@@ -30,7 +30,6 @@ class TerminalColors:
     UNDERLINE = '\033[4m'
 
 
-
 class RvizPublisher():
     def __init__(self):
         self.tc = TerminalColors()
@@ -151,34 +150,49 @@ class RvizPublisher():
                     position[pos] = float(position[pos])
         return position
 
-    def main(self):
+    def main(self, initialpose=True, goal=True, *pos):
         '''
         publish initialpose and navigation goal
         :return: --
         '''
-        output = 'RVIZ auto-position publisher with goal: [x: ' + \
-                 str(self.args.goal[0]) + '; y: ' + \
-                 str(self.args.goal[1]) + '; R: ' + \
-                 str(self.args.goal[2]) + '; P: ' + \
-                 str(self.args.goal[3]) + '; Y: ' + \
-                 str(self.args.goal[4]) + ']'
+        if self.args.goal is not None:
+            output = 'RVIZ auto-position publisher with goal: [x: ' + \
+                     str(self.args.goal[0]) + '; y: ' + \
+                     str(self.args.goal[1]) + '; R: ' + \
+                     str(self.args.goal[2]) + '; P: ' + \
+                     str(self.args.goal[3]) + '; Y: ' + \
+                     str(self.args.goal[4]) + ']'
+        else:
+            output = 'RVIZ auto-position publisher with goal: [x: ' + \
+                     str(pos[0]) + '; y: ' + \
+                     str(pos[1]) + '; R: ' + \
+                     str(pos[2]) + '; P: ' + \
+                     str(pos[3]) + '; Y: ' + \
+                     str(pos[4]) + ']'
         print self.tc.OKBLUE + '=' * output.__len__()
         print output
         print '=' * output.__len__() + self.tc.ENDC
-        position = rp.getParams()
-        rp.publish('/initialpose', position['x'], position['y'], position['R'], position['P'], position['Y'])
-        print self.tc.OKBLUE + '='*80 + self.tc.ENDC
 
+        if initialpose:
+            position = self.getParams()
+            self.publish('/initialpose', position['x'], position['y'], position['R'], position['P'], position['Y'])
+            print self.tc.OKBLUE + '=' * 80 + self.tc.ENDC
 
-        rospy.sleep(3)
-        rp.publish('/move_base_simple/goal', self.args.goal[0], self.args.goal[1], self.args.goal[2], self.args.goal[3],
-                   self.args.goal[4])
-        print self.tc.OKBLUE + '='*80 + self.tc.ENDC
+        if goal:
+            rospy.sleep(3)
+            if self.args.goal is not None:
+                self.publish('/move_base_simple/goal', self.args.goal[0], self.args.goal[1], self.args.goal[2],
+                           self.args.goal[3],
+                           self.args.goal[4])
+            else:
+                print 'args goal is "None"'
+                self.publish('/move_base_simple/goal', pos[0], pos[1], pos[2], pos[3], pos[4])
+            print self.tc.OKBLUE + '=' * 80 + self.tc.ENDC
 
 
 if __name__ == '__main__':
     try:
         rp = RvizPublisher()
-        rp.main()
+        rp.main(True, True, -0.2, 6.0, 0, 0, 0)
     except rospy.ROSInterruptException:
         pass
