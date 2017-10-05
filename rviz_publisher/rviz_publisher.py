@@ -6,7 +6,7 @@ Created on Sep 6, 2017
 @author: flg-ma
 @attention: Auto Position Publisher for RVIZ
 @contact: albus.marcel@gmail.com (Marcel Albus)
-@version: 1.3.0
+@version: 1.3.1
 """
 
 import os
@@ -41,15 +41,10 @@ class RvizPublisher():
                        '/clicked_point': PointStamped,
                        '/move_base/goal': MoveBaseActionGoal}
 
-        # self.publisher = {}
+        self.publisher = {}
+        for topic, msg_type in self.topics.iteritems():
+            self.publisher[topic] = rospy.Publisher(topic, msg_type, latch=True, queue_size=10)
 
-        self.publisher_initialpose = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, latch=True, queue_size=10)
-        self.publisher_goal = rospy.Publisher('/move_base/goal', MoveBaseActionGoal, latch=True, queue_size=10)
-
-        # for topic, msg_type in self.topics.iteritems():
-        #     self.publisher[topic] = rospy.Publisher(topic, msg_type, latch=True, queue_size=10)
-
-        # rospy.init_node('rviz_publisher', anonymous=True)
         # python bug... sleep NEEDED!(ros tired...) Min: 0.5 sec
         # rospy.sleep(1.0)
 
@@ -137,28 +132,17 @@ class RvizPublisher():
         # generate message to publish
         msg = self.setupMessage(self.topics[topic], 'map', pose_x, pose_y, *args)
         print msg
-        if topic == '/initialpose':
-            self.publisher_initialpose.publish(msg)
-        elif topic == '/move_base/goal':
-            self.publisher_goal.publish(msg)
-
-        # self.publisher[topic].publish(msg)
+        self.publisher[topic].publish(msg)
 
     def getParams(self, filepath=None):
         '''
-        get parameter from .launch-file for /initialpose
-        filepath: path to .launch file with initialpose
+        get parameter from ".launch"-file for /initialpose publish
+        filepath: path to ".launch" file with initialpose information
         :return: position of robot in gazebo
         '''
-        # if self.args.launch is not None:
-        #     filename = self.args.launch
-        # else:
-        #     filename = filepath
-        # filename = filepath
-
         file, fileextension = os.path.splitext(filepath)
 
-        # if file is an xml or launch-file
+        # if file is a xml or launch-file
         if fileextension == '.launch' or fileextension == '.xml':
             tree = ET.parse(filepath)
             root = tree.getroot()
@@ -177,22 +161,6 @@ class RvizPublisher():
             # convert str to float
             for pos in position:
                 position[pos] = float(position[pos])
-        # else:
-        #     with open(filename, 'r') as f:
-        #         content = f.readlines()
-        #
-        #     position = {}
-        #     for line in content:
-        #         if 'initial_config' in line and 'default' in line:
-        #             # print line
-        #             position['x'] = line[line.index('-x') + 3:line.index('-y') - 1]
-        #             position['y'] = line[line.index('-y') + 3:line.index('-R') - 1]
-        #             position['R'] = line[line.index('-R') + 3:line.index('-P') - 1]
-        #             position['P'] = line[line.index('-P') + 3:line.index('-Y') - 1]
-        #             position['Y'] = line[line.index('-Y') + 3:line.index('"/>')]
-        #             # convert str to float
-        #             for pos in position:
-        #                 position[pos] = float(position[pos])
         return position
 
     def main(self, filepath=None, initialpose=True, goal=True, *pos):
