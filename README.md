@@ -12,6 +12,11 @@ The follwing commandline arguments can be passed to `rviz_publisher.py`:
 
 
 ## History
+**V 1.3.0**
+- `application.py standalone` and `catkin_make atf_atf_nav_test` test:
+  - [x] test passed
+  - [ ] test failed 
+
 **V 1.1.0:**
 - added terminal support for `goal` and `launch`-file
 - `goal` accepts `x, y, R, P, Y` input
