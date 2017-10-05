@@ -6,15 +6,17 @@ Created on Sep 6, 2017
 @author: flg-ma
 @attention: Auto Position Publisher for RVIZ
 @contact: albus.marcel@gmail.com (Marcel Albus)
-@version: 1.1.0
+@version: 1.3.0
 """
 
+import os
+import xml.etree.ElementTree as ET
 import rospy
-import argparse
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PointStamped
+from move_base_msgs.msg import MoveBaseActionGoal
 import tf
 
 
@@ -30,32 +32,26 @@ class TerminalColors:
     UNDERLINE = '\033[4m'
 
 
-
 class RvizPublisher():
     def __init__(self):
         self.tc = TerminalColors()
         # topics you can publish
         self.topics = {'/initialpose': PoseWithCovarianceStamped,
                        '/move_base_simple/goal': PoseStamped,
-                       '/clicked_point': PointStamped}
-        self.publisher = {}
-        for topic, msg_type in self.topics.iteritems():
-            self.publisher[topic] = rospy.Publisher(topic, msg_type, queue_size=2)
+                       '/clicked_point': PointStamped,
+                       '/move_base/goal': MoveBaseActionGoal}
 
-        # setup argument parser
-        self.args = self.build_parser().parse_args()
+        # self.publisher = {}
 
-        rospy.init_node('rviz_publisher', anonymous=True)
+        self.publisher_initialpose = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, latch=True, queue_size=10)
+        self.publisher_goal = rospy.Publisher('/move_base/goal', MoveBaseActionGoal, latch=True, queue_size=10)
+
+        # for topic, msg_type in self.topics.iteritems():
+        #     self.publisher[topic] = rospy.Publisher(topic, msg_type, latch=True, queue_size=10)
+
+        # rospy.init_node('rviz_publisher', anonymous=True)
         # python bug... sleep NEEDED!(ros tired...) Min: 0.5 sec
-        rospy.sleep(.5)
-
-    def build_parser(self):
-        parser = argparse.ArgumentParser(
-            description='Publish \'/initialpose\' for RVIZ to auto-locate robot')
-        # group = parser.add_mutually_exclusive_group()
-        parser.add_argument('-g', '--goal', help='goal for robot as: x y R P Y', nargs='+', type=float)
-        parser.add_argument('launch', help='launch-file to read \'initial_config\' from', type=str)
-        return parser
+        # rospy.sleep(1.0)
 
     def euler2quaternion(self, roll, pitch, yaw):
         '''
@@ -79,7 +75,7 @@ class RvizPublisher():
         :return: fully setup message
         '''
         msg = msg_type()
-        msg.header.seq = 1
+        # msg.header.seq = 1
         msg.header.stamp = rospy.Time.now()
         msg.header.frame_id = frame_id
         args = list(args)
@@ -109,6 +105,21 @@ class RvizPublisher():
             msg.pose.orientation.z = quaternion[2]
             msg.pose.orientation.w = quaternion[3]
 
+        elif msg_type is MoveBaseActionGoal:
+            msg.goal_id.stamp = rospy.Time.now()
+            msg.goal_id.id = 'rviz_publisher_goal'
+
+            msg.goal.target_pose.header.seq = 1
+            msg.goal.target_pose.header.stamp = rospy.Time.now()
+            msg.goal.target_pose.header.frame_id = frame_id
+
+            msg.goal.target_pose.pose.position.x = position_x
+            msg.goal.target_pose.pose.position.y = position_y
+            msg.goal.target_pose.pose.orientation.x = quaternion[0]
+            msg.goal.target_pose.pose.orientation.y = quaternion[1]
+            msg.goal.target_pose.pose.orientation.z = quaternion[2]
+            msg.goal.target_pose.pose.orientation.w = quaternion[3]
+
         elif msg_type is PointStamped:
             msg.point.x = position_x
             msg.point.y = position_y
@@ -126,59 +137,102 @@ class RvizPublisher():
         # generate message to publish
         msg = self.setupMessage(self.topics[topic], 'map', pose_x, pose_y, *args)
         print msg
-        self.publisher[topic].publish(msg)
+        if topic == '/initialpose':
+            self.publisher_initialpose.publish(msg)
+        elif topic == '/move_base/goal':
+            self.publisher_goal.publish(msg)
 
-    def getParams(self):
+        # self.publisher[topic].publish(msg)
+
+    def getParams(self, filepath=None):
         '''
         get parameter from .launch-file for /initialpose
+        filepath: path to .launch file with initialpose
         :return: position of robot in gazebo
         '''
-        filename = self.args.launch
-        with open(filename, 'r') as f:
-            content = f.readlines()
+        # if self.args.launch is not None:
+        #     filename = self.args.launch
+        # else:
+        #     filename = filepath
+        # filename = filepath
 
-        position = {}
-        for line in content:
-            if 'initial_config' in line and 'default' in line:
-                # print line
-                position['x'] = line[line.index('-x') + 3:line.index('-y') - 1]
-                position['y'] = line[line.index('-y') + 3:line.index('-R') - 1]
-                position['R'] = line[line.index('-R') + 3:line.index('-P') - 1]
-                position['P'] = line[line.index('-P') + 3:line.index('-Y') - 1]
-                position['Y'] = line[line.index('-Y') + 3:line.index('"/>')]
-                # convert str to float
-                for pos in position:
-                    position[pos] = float(position[pos])
+        file, fileextension = os.path.splitext(filepath)
+
+        # if file is an xml or launch-file
+        if fileextension == '.launch' or fileextension == '.xml':
+            tree = ET.parse(filepath)
+            root = tree.getroot()
+            for config in root.findall('arg'):
+                if config.attrib['name'] in 'initial_config':
+                    content = config.attrib['default']
+                    print content
+                    break
+
+            position = {}
+            position['x'] = content[content.index('-x') + 3:content.index('-y') - 1]
+            position['y'] = content[content.index('-y') + 3:content.index('-R') - 1]
+            position['R'] = content[content.index('-R') + 3:content.index('-P') - 1]
+            position['P'] = content[content.index('-P') + 3:content.index('-Y') - 1]
+            position['Y'] = content[content.index('-Y') + 3:]
+            # convert str to float
+            for pos in position:
+                position[pos] = float(position[pos])
+        # else:
+        #     with open(filename, 'r') as f:
+        #         content = f.readlines()
+        #
+        #     position = {}
+        #     for line in content:
+        #         if 'initial_config' in line and 'default' in line:
+        #             # print line
+        #             position['x'] = line[line.index('-x') + 3:line.index('-y') - 1]
+        #             position['y'] = line[line.index('-y') + 3:line.index('-R') - 1]
+        #             position['R'] = line[line.index('-R') + 3:line.index('-P') - 1]
+        #             position['P'] = line[line.index('-P') + 3:line.index('-Y') - 1]
+        #             position['Y'] = line[line.index('-Y') + 3:line.index('"/>')]
+        #             # convert str to float
+        #             for pos in position:
+        #                 position[pos] = float(position[pos])
         return position
 
-    def main(self):
+    def main(self, filepath=None, initialpose=True, goal=True, *pos):
         '''
         publish initialpose and navigation goal
         :return: --
         '''
-        output = 'RVIZ auto-position publisher with goal: [x: ' + \
-                 str(self.args.goal[0]) + '; y: ' + \
-                 str(self.args.goal[1]) + '; R: ' + \
-                 str(self.args.goal[2]) + '; P: ' + \
-                 str(self.args.goal[3]) + '; Y: ' + \
-                 str(self.args.goal[4]) + ']'
-        print self.tc.OKBLUE + '=' * output.__len__()
-        print output
-        print '=' * output.__len__() + self.tc.ENDC
-        position = rp.getParams()
-        rp.publish('/initialpose', position['x'], position['y'], position['R'], position['P'], position['Y'])
-        print self.tc.OKBLUE + '='*80 + self.tc.ENDC
 
+        if initialpose:
+            position = self.getParams(filepath)
+            output = 'RVIZ initialpose: [x: ' + \
+                     str(position['x']) + '; y: ' + \
+                     str(position['y']) + '; R: ' + \
+                     str(position['R']) + '; P: ' + \
+                     str(position['P']) + '; Y: ' + \
+                     str(position['Y']) + ']'
+            print self.tc.OKBLUE + '=' * output.__len__()
+            print output
+            print '=' * output.__len__() + self.tc.ENDC
+            self.publish('/initialpose', position['x'], position['y'], position['R'], position['P'], position['Y'])
+            print self.tc.OKBLUE + '=' * 80 + self.tc.ENDC
 
-        rospy.sleep(3)
-        rp.publish('/move_base_simple/goal', self.args.goal[0], self.args.goal[1], self.args.goal[2], self.args.goal[3],
-                   self.args.goal[4])
-        print self.tc.OKBLUE + '='*80 + self.tc.ENDC
+        if goal:
+            output = 'RVIZ goal: [x: ' + \
+                     str(pos[0]) + '; y: ' + \
+                     str(pos[1]) + '; R: ' + \
+                     str(pos[2]) + '; P: ' + \
+                     str(pos[3]) + '; Y: ' + \
+                     str(pos[4]) + ']'
+            print self.tc.OKBLUE + '=' * output.__len__()
+            print output
+            print '=' * output.__len__() + self.tc.ENDC
+            # self.publish('/move_base_simple/goal', pos[0], pos[1], pos[2], pos[3], pos[4])
+            self.publish('/move_base/goal', pos[0], pos[1], pos[2], pos[3], pos[4])
+            print self.tc.OKBLUE + '=' * 80 + self.tc.ENDC
 
 
 if __name__ == '__main__':
     try:
         rp = RvizPublisher()
-        rp.main()
+        rp.main(True, True, -0.2, 6.0, 0, 0, 0)
     except rospy.ROSInterruptException:
         pass
