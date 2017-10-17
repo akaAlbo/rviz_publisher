@@ -1,9 +1,5 @@
 # RVIZ Publisher
-![Python Version](https://github.com/ipa-flg-ma/rviz_publisher/blob/ipa/rviz_publisher/badges/python-2.7.6-blue.svg)
-
-
 ![Python Version](rviz_publisher/badges/python-2.7.6-blue.svg)
-
 
 Python programm for auto-localisation and setting goal.
 
