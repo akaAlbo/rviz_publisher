@@ -6,7 +6,7 @@ Created on Sep 6, 2017
 @author: flg-ma
 @attention: Auto Position Publisher for RVIZ
 @contact: albus.marcel@gmail.com (Marcel Albus)
-@version: 1.3.1
+@version: 1.3.2
 """
 
 import os
@@ -47,6 +47,9 @@ class RvizPublisher():
 
         # python bug... sleep NEEDED!(ros tired...) Min: 0.5 sec
         # rospy.sleep(1.0)
+
+    def __del__(self):
+        print self.tc.OKGREEN, 'deleting ', self, self.tc.ENDC
 
     def euler2quaternion(self, roll, pitch, yaw):
         '''
@@ -181,7 +184,7 @@ class RvizPublisher():
             print output
             print '=' * output.__len__() + self.tc.ENDC
             self.publish('/initialpose', position['x'], position['y'], position['R'], position['P'], position['Y'])
-            print self.tc.OKBLUE + '=' * 80 + self.tc.ENDC
+            print self.tc.OKBLUE + '=' * output.__len__() + self.tc.ENDC
 
         if goal:
             output = 'RVIZ goal: [x: ' + \
@@ -195,7 +198,7 @@ class RvizPublisher():
             print '=' * output.__len__() + self.tc.ENDC
             # self.publish('/move_base_simple/goal', pos[0], pos[1], pos[2], pos[3], pos[4])
             self.publish('/move_base/goal', pos[0], pos[1], pos[2], pos[3], pos[4])
-            print self.tc.OKBLUE + '=' * 80 + self.tc.ENDC
+            print self.tc.OKBLUE + '=' * output.__len__() + self.tc.ENDC
 
 
 if __name__ == '__main__':
