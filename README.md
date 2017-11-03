@@ -30,3 +30,6 @@ The follwing commandline arguments can be passed to `rviz_publisher.py`:
 
 **V 1.0.0:**
 - first try
+
+# HOW-TO New Metric
+See [jerk_metrics](https://github.com/ipa-flg-ma/jerk_metrics/)-repo for further information about creating a new metrics and implementing the needed `launch` and `xml` files.
